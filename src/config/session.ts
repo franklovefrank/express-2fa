@@ -1,20 +1,26 @@
 import session from 'express-session';
-import IORedis from 'ioredis';
-import RedisStore from 'connect-redis';
+import pgSession from 'connect-pg-simple';
 
-const redisClient = new IORedis({
-    host: process.env.REDIS_HOST || 'redis',
-    port: parseInt(process.env.REDIS_PORT || "6379", 10)
+const sessionStore = process.env.NODE_ENV === 'test' ? undefined : new (pgSession(session))({
+    conObject: {
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+    },
+    createTableIfMissing: true,
 });
 
 export default session({
-    store: new RedisStore({ client: redisClient }),
-    secret: process.env.SESSION_SECRET || 'secret',
-    resave: false,
+    store: sessionStore,
+    secret: 'docker-express-boilerplate-api',
     saveUninitialized: false,
+    resave: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
-        httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 3, // 3 hours
+        secure: process.env.NODE_ENV === 'production' ? true : false,
+        httpOnly: process.env.NODE_ENV === 'production' ? true : false,
+        sameSite: 'lax',
+        maxAge: 90 * 24 * 60 * 60 * 1000, // 3 months
     },
 });
