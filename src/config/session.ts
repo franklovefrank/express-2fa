@@ -1,31 +1,20 @@
 import session from 'express-session';
-import Redis from 'redis';
-import connectRedis from 'connect-redis';
+import IORedis from 'ioredis';
+import RedisStore from 'connect-redis';
 
-const RedisStore = connectRedis(session);
-
-const redisClient = Redis.createClient({
-    url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
-});
-
-redisClient.on('error', (err) => {
-    console.error('Redis error: ', err);
-});
-
-const sessionStore = process.env.NODE_ENV === 'test' ? undefined : new RedisStore({
-    client: redisClient,
-    prefix: 'sess:', // Optional: to add a prefix to session keys
+const redisClient = new IORedis({
+    host: process.env.REDIS_HOST || 'redis',
+    port: parseInt(process.env.REDIS_PORT || "6379", 10)
 });
 
 export default session({
-    store: sessionStore,
-    secret: 'docker-express-boilerplate-api',
-    saveUninitialized: false,
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET || 'secret',
     resave: false,
+    saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 90 * 24 * 60 * 60 * 1000, // 3 months
+        secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 3, // 3 hours
     },
 });
