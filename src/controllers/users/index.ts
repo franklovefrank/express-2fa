@@ -10,16 +10,13 @@ import { updateUser, updateUserPassword } from '../../services/user';
 const create = async (req: TypedRequestBody<UsersCreateBody>, res: Response, next: NextFunction) => {
     const { username, email, mobile, password } = validateCreateBody(req.body);
 
-    // Create a query runner to control the transactions, it allows to cancel the transaction if we need to
     const queryRunner = AppDataSource.createQueryRunner();
 
-    // Logging the database connection details
     console.log('Database Connection Details:', {
         type: AppDataSource.options.type,
         database: AppDataSource.options.database,
     });
 
-    // Connect the query runner to the database and start the transaction
     await queryRunner.connect();
     await queryRunner.startTransaction();
     console.log('Transaction started.');
@@ -27,7 +24,6 @@ const create = async (req: TypedRequestBody<UsersCreateBody>, res: Response, nex
     try {
         const userRepo = queryRunner.manager.getRepository(User);
 
-        // Check if username exists and log the query
         const usernameExists = await userRepo.exist({
             where: { username }
         });
@@ -36,7 +32,6 @@ const create = async (req: TypedRequestBody<UsersCreateBody>, res: Response, nex
             throw createHttpError(409, 'Username already exists');
         }
 
-        // Check if email exists and log the query
         const emailExists = await userRepo.exist({
             where: { email }
         });
@@ -45,7 +40,6 @@ const create = async (req: TypedRequestBody<UsersCreateBody>, res: Response, nex
             throw createHttpError(409, 'Email already exists');
         }
 
-        // Log before creating a new user
         console.log('Creating new user:', { username, email, mobile });
         const newUser = new User();
         newUser.username = username;
@@ -56,7 +50,6 @@ const create = async (req: TypedRequestBody<UsersCreateBody>, res: Response, nex
 
         console.log('New user saved:', { userId: newUser.id });
 
-        // No exceptions occurred, so we commit the transaction
         await queryRunner.commitTransaction();
         console.log('Transaction committed successfully.');
 
@@ -83,7 +76,7 @@ export const updateUserDetails = async (
     res: Response,
     next: NextFunction
 ) => {
-    const user = req.user; // Assumes `req.user` contains user information from authentication middleware
+    const user = req.user; 
 
     if (!user || !user.id) {
         return next(createHttpError(401, 'User not authenticated'));
@@ -100,7 +93,6 @@ export const updateUserDetails = async (
             updatedDetails.desired_email = desired_email;
         }
 
-        // Update user details
         if (Object.keys(updatedDetails).length > 0) {
             await updateUser(user.id, updatedDetails);
         }
@@ -117,7 +109,7 @@ export const updatePassword = async (
     res: Response,
     next: NextFunction
 ) => {
-    const user = req.user; // Assumes `req.user` contains user information from authentication middleware
+    const user = req.user; 
 
     if (!user || !user.id) {
         return next(createHttpError(401, 'User not authenticated'));
@@ -134,10 +126,9 @@ export const updatePassword = async (
             return next(createHttpError(400, 'new password not provided'));
         }
     
-        // Update the password
         await updateUserPassword(user.id, desired_password);
 
-        req.session.twoFAStatus = false; // Reset 2FA status
+        req.session.twoFAStatus = false;
         res.send({ message: 'Password updated successfully' });
     } catch (error) {
         next(createHttpError(500, 'Failed to update password'));

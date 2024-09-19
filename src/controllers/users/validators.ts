@@ -34,7 +34,5 @@ export const validateCreateBody = (body: Partial<UsersCreateBody>) => {
         throw createHttpError(400, 'Password must contain at least 8 characters');
     }
 
-    // As the function checked the properties are not missing,
-    // return the body as original type
     return body as UsersCreateBody;
 };

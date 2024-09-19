@@ -20,18 +20,15 @@ export const updateUser = async (
 
         const userRepo = queryRunner.manager.getRepository(User);
 
-        // Find the user by ID
         const user = await userRepo.findOne({ where: { id: userId } });
         if (!user) {
             throw createHttpError(404, 'User not found');
         }
 
-        // Validate if there's something to update
         if (!updatedDetails.desired_username && !updatedDetails.desired_email) {
             throw createHttpError(400, 'No details provided for update');
         }
 
-        // Apply updates
         if (updatedDetails.desired_username) {
             user.username = updatedDetails.desired_username;
         }
@@ -40,10 +37,8 @@ export const updateUser = async (
             user.email = updatedDetails.desired_email;
         }
 
-        // Save the updated user entity
         await userRepo.save(user);
 
-        // Commit the transaction
         await queryRunner.commitTransaction();
     } catch (error) {
         console.error('Error updating user:', error);
