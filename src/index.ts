@@ -1,0 +1,22 @@
+import * as dotenv from 'dotenv';
+import 'reflect-metadata';
+dotenv.config();
+
+import createServer from './config/server';
+import { AppDataSource } from './data-source';
+
+const host = process.env.HOST || '0.0.0.0';
+const port = process.env.PORT || '8080';
+
+const app = createServer();
+
+AppDataSource.initialize()
+    .then(() => {
+        console.log('Connected to Database:', AppDataSource.options.database);
+        app.listen({ host, port }, () => {
+            console.info(`⚡️ Server is running at http://${host}:${port}`);
+            console.log(`API docs available at http://${host}:${port}/api-docs`);
+
+        });
+    })
+    .catch(console.error);
