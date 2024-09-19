@@ -1,15 +1,20 @@
 import session from 'express-session';
-import pgSession from 'connect-pg-simple';
+import Redis from 'redis';
+import connectRedis from 'connect-redis';
 
-const sessionStore = process.env.NODE_ENV === 'test' ? undefined : new (pgSession(session))({
-    conObject: {
-        host: process.env.DB_HOST,
-        port: Number(process.env.DB_PORT),
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-    },
-    createTableIfMissing: true,
+const RedisStore = connectRedis(session);
+
+const redisClient = Redis.createClient({
+    url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+});
+
+redisClient.on('error', (err) => {
+    console.error('Redis error: ', err);
+});
+
+const sessionStore = process.env.NODE_ENV === 'test' ? undefined : new RedisStore({
+    client: redisClient,
+    prefix: 'sess:', // Optional: to add a prefix to session keys
 });
 
 export default session({
@@ -18,8 +23,8 @@ export default session({
     saveUninitialized: false,
     resave: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production' ? true : false,
-        httpOnly: process.env.NODE_ENV === 'production' ? true : false,
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 90 * 24 * 60 * 60 * 1000, // 3 months
     },
